@@ -28,6 +28,14 @@ import {
 // DATA SECTION
 // ==========================================
 
+/**
+ * @const CAR_MANUAL
+ * @description
+ * In a production environment, this technical documentation would be fetched from a local Vector Database.
+ *
+ * For this offline demo, it is provided as 'Pre-indexed static assets for zero-latency edge retrieval'
+ * to ensure instant availability and demonstrate the offline-first RAG architecture.
+ */
 const CAR_MANUAL = `
 [OFFICIAL FORD FIESTA (MK7) WORKSHOP MANUAL - SECTION 4: INSTRUMENT CLUSTER]
 
@@ -51,6 +59,14 @@ const CAR_MANUAL = `
    OFFICIAL FIX: Turn off all non-essential electrical loads (Radio, A/C, Heated Seats). Drive immediately to the nearest service station. Engine will stop when battery depletes.
 `;
 
+/**
+ * @const INITIAL_USER_LOGS
+ * @description
+ * In a production environment, these user records would be fetched from a local Vector Database.
+ *
+ * For this offline demo, they are provided as 'Pre-indexed static assets for zero-latency edge retrieval'
+ * to simulate the retrieval of personalized context without network latency.
+ */
 const INITIAL_USER_LOGS = [
   { id: 1, date: "2025-11-20", note: "Full Service completed at Halfords." },
   {
@@ -268,7 +284,7 @@ export default function HomeScreen() {
           <TextInput
             style={styles.setupInput}
             placeholder="FORD"
-            placeholderTextColor="#333"
+            placeholderTextColor="#D71921"
             onChangeText={setCarMake}
             value={carMake}
           />
@@ -279,7 +295,7 @@ export default function HomeScreen() {
           <TextInput
             style={styles.setupInput}
             placeholder="FIESTA"
-            placeholderTextColor="#333"
+            placeholderTextColor="#D71921"
             onChangeText={setCarModel}
             value={carModel}
           />
@@ -290,7 +306,7 @@ export default function HomeScreen() {
           <TextInput
             style={styles.setupInput}
             placeholder="2015"
-            placeholderTextColor="#333"
+            placeholderTextColor="#D71921"
             keyboardType="numeric"
           />
         </View>
@@ -404,7 +420,7 @@ export default function HomeScreen() {
           <TextInput
             style={styles.input}
             placeholder="ENTER COMMAND..."
-            placeholderTextColor="#555"
+            placeholderTextColor="#D71921"
             value={inputText}
             onChangeText={setInputText}
           />
@@ -434,50 +450,62 @@ const styles = StyleSheet.create({
   // SETUP FORM
   setupTitle: {
     color: "#FFF",
-    fontSize: 40,
-    fontFamily: "DotGothic16_400Regular",
-    letterSpacing: 2,
-  },
-  setupSubtitle: {
-    color: "#666",
-    fontSize: 14,
+    fontSize: 48, // Larger
     fontFamily: "DotGothic16_400Regular",
     letterSpacing: 4,
+    marginBottom: 10,
+    lineHeight: 56, // Prevent clipping
+    paddingVertical: 10, // Extra safety
   },
-  inputGroup: { marginBottom: 20 },
+  setupSubtitle: {
+    color: "#D71921", // Red
+    fontSize: 16,
+    fontFamily: "DotGothic16_400Regular",
+    letterSpacing: 6,
+    lineHeight: 24, // Prevent clipping
+  },
+  inputGroup: { marginBottom: 40 }, // Generous spacing
   label: {
     color: "#D71921",
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: "DotGothic16_400Regular",
-    marginBottom: 5,
+    marginBottom: 12,
+    letterSpacing: 2,
+    lineHeight: 20, // Prevent clipping
   },
   setupInput: {
-    backgroundColor: "#111",
+    backgroundColor: "#000",
     color: "#FFF",
-    padding: 15,
+    padding: 20, // Generous padding
     fontFamily: "DotGothic16_400Regular",
-    fontSize: 18,
-    borderBottomWidth: 1,
-    borderColor: "#333",
+    fontSize: 24,
+    borderWidth: 2, // Visible border
+    borderColor: "#FFF", // White border
+    borderStyle: "dashed", // Industrial feel
   },
   setupButton: {
     backgroundColor: "#D71921",
-    padding: 20,
+    padding: 24,
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 40,
+    borderWidth: 2,
+    borderColor: "#D71921",
   },
   setupButtonText: {
     color: "#FFF",
     fontFamily: "DotGothic16_400Regular",
-    fontSize: 18,
-    letterSpacing: 2,
+    fontSize: 20,
+    letterSpacing: 4,
+    lineHeight: 28, // Prevent clipping
+    paddingVertical: 4,
   },
   downloadText: {
-    color: "#FFF",
+    color: "#D71921",
     fontFamily: "DotGothic16_400Regular",
-    fontSize: 14,
+    fontSize: 16,
     textAlign: "center",
-    marginBottom: 5,
+    marginBottom: 10,
+    letterSpacing: 2,
   },
 
   // HEADER & MAIN
@@ -485,142 +513,162 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    padding: 24,
-    paddingBottom: 10,
+    padding: 32, // Generous spacing
+    paddingBottom: 20,
   },
   headerTitle: {
     color: "#FFF",
-    fontSize: 32,
+    fontSize: 42,
     fontFamily: "DotGothic16_400Regular",
+    letterSpacing: -2,
+    lineHeight: 50, // Prevent clipping
+    paddingVertical: 5,
   },
   headerSubtitle: {
-    color: "#666",
-    fontSize: 12,
+    color: "#D71921",
+    fontSize: 14,
     fontFamily: "DotGothic16_400Regular",
     letterSpacing: 2,
+    marginTop: 4,
+    lineHeight: 20, // Prevent clipping
   },
-  statusDot: { width: 8, height: 8, borderRadius: 4, marginBottom: 5 },
+  statusDot: { width: 12, height: 12, borderRadius: 0, marginBottom: 8 }, // Square dot
   dotRed: { backgroundColor: "#D71921" },
-  dotGreen: { backgroundColor: "#00FF00" },
+  dotGreen: { backgroundColor: "#FFF" }, // Green -> White for strict palette? Or keep Green for status? User said "Strictly Black, White, Red". I will use White for "Active/Good" to stick to palette, or Red for everything. But usually "Green" implies good. I'll use White for "Online" to respect the strict palette request.
   divider: {
     overflow: "hidden",
-    height: 14,
-    marginHorizontal: 24,
-    marginBottom: 10,
-    opacity: 0.3,
+    height: 20,
+    marginHorizontal: 32,
+    marginBottom: 20,
+    opacity: 1,
   },
   dividerText: {
-    color: "#666",
-    fontSize: 10,
-    letterSpacing: 3,
+    color: "#D71921",
+    fontSize: 12,
+    letterSpacing: 4,
     fontFamily: "DotGothic16_400Regular",
   },
 
-  chatList: { flex: 1, paddingHorizontal: 24 },
-  messageRow: { marginBottom: 24 },
-  userRow: { alignSelf: "flex-end", alignItems: "flex-end", width: "85%" },
+  chatList: { flex: 1, paddingHorizontal: 32 },
+  messageRow: { marginBottom: 40 }, // Generous spacing
+  userRow: { alignSelf: "flex-end", alignItems: "flex-end", width: "90%" },
   aiRow: { alignSelf: "flex-start", width: "90%" },
   roleLabel: {
-    color: "#444",
-    fontSize: 10,
+    color: "#D71921",
+    fontSize: 12,
     fontFamily: "DotGothic16_400Regular",
-    marginBottom: 4,
+    marginBottom: 8,
+    letterSpacing: 2,
   },
+  // TERMINAL LOG STYLE
   messageText: {
-    color: "#EAEAEA",
-    fontSize: 15,
+    color: "#FFF",
+    fontSize: 18,
     fontFamily: "DotGothic16_400Regular",
-    lineHeight: 22,
+    lineHeight: 32, // Increased from 28
+    paddingVertical: 4, // Extra safety
+    backgroundColor: "#000",
+    borderLeftWidth: 2, // Terminal cursor look
+    borderLeftColor: "#D71921",
+    paddingLeft: 16,
   },
   messageImage: {
-    width: 180,
-    height: 120,
-    backgroundColor: "#222",
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#333",
+    width: 240,
+    height: 160,
+    backgroundColor: "#000",
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: "#FFF",
   },
 
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: "#333",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    borderTopWidth: 2,
+    borderTopColor: "#FFF",
+    paddingHorizontal: 32,
+    paddingVertical: 24,
+    backgroundColor: "#000",
   },
   inputArrow: {
     color: "#D71921",
-    fontSize: 18,
+    fontSize: 24,
     fontFamily: "DotGothic16_400Regular",
-    marginRight: 12,
+    marginRight: 16,
   },
   input: {
     flex: 1,
     color: "#FFF",
-    fontSize: 16,
+    fontSize: 20,
     fontFamily: "DotGothic16_400Regular",
+    lineHeight: 28, // Prevent clipping
+    paddingVertical: 4,
   },
 
   controlGrid: {
     flexDirection: "row",
-    paddingHorizontal: 24,
-    paddingBottom: 30,
-    gap: 12,
+    paddingHorizontal: 32,
+    paddingBottom: 40,
+    gap: 16,
   },
   btnSecondary: {
     flex: 1,
-    paddingVertical: 15,
-    borderWidth: 1,
-    borderColor: "#333",
+    paddingVertical: 20,
+    borderWidth: 2,
+    borderColor: "#FFF",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#000",
   },
   btnPrimary: {
     flex: 2,
-    paddingVertical: 15,
-    backgroundColor: "#1A1A1A",
+    paddingVertical: 20,
+    backgroundColor: "#D71921", // Red background
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 12,
   },
   btnInnerRed: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#D71921",
+    width: 12,
+    height: 12,
+    borderRadius: 0, // Square
+    backgroundColor: "#FFF", // White dot inside red button
   },
   btnTextSecondary: {
-    color: "#666",
-    fontSize: 12,
-    fontFamily: "DotGothic16_400Regular",
-  },
-  btnTextPrimary: {
     color: "#FFF",
     fontSize: 14,
     fontFamily: "DotGothic16_400Regular",
-    letterSpacing: 1,
+    letterSpacing: 2,
+    lineHeight: 20,
+  },
+  btnTextPrimary: {
+    color: "#FFF",
+    fontSize: 16,
+    fontFamily: "DotGothic16_400Regular",
+    letterSpacing: 2,
+    lineHeight: 24,
   },
 
   camOverlayTop: {
     position: "absolute",
-    top: 60,
-    left: 24,
-    right: 24,
+    top: 80,
+    left: 32,
+    right: 32,
     flexDirection: "row",
     justifyContent: "space-between",
   },
   camText: {
     color: "#FFF",
     fontFamily: "DotGothic16_400Regular",
-    fontSize: 12,
+    fontSize: 14,
+    letterSpacing: 2,
   },
   camOverlayBottom: {
     position: "absolute",
-    bottom: 50,
-    left: 30,
-    right: 30,
+    bottom: 60,
+    left: 40,
+    right: 40,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -628,21 +676,22 @@ const styles = StyleSheet.create({
   camCancelText: {
     color: "#FFF",
     fontFamily: "DotGothic16_400Regular",
-    fontSize: 14,
+    fontSize: 16,
+    letterSpacing: 2,
   },
   captureButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     borderWidth: 4,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: "#FFF",
     justifyContent: "center",
     alignItems: "center",
   },
   captureInner: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: "#D71921",
   },
 });
