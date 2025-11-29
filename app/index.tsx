@@ -1,202 +1,233 @@
-import { ThemedView } from '@/components/ThemedView';
-import { downloadModelIfNotExists, getFullModelPath, getModelNameFromUrl } from '@/utils/functions';
-import { styles } from '@/utils/styles';
-import { CactusAgent } from 'cactus-react-native';
-import * as FileSystem from 'expo-file-system';
-import { Calendar, Check, ListTodo, LucideIcon, Mail, X } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { FlatList, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInLeft, LinearTransition } from 'react-native-reanimated';
-import uuid from 'react-native-uuid';
+import React, { useEffect, useState, useRef } from "react";
+import {
+  FlatList,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  SafeAreaView,
+  StyleSheet,
+  KeyboardAvoidingView,
+} from "react-native";
+import { CactusAgent } from "cactus-react-native";
 
-interface RecommendedAction {
-  id: string;
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  accepted: boolean;
-}
+// --- DATA SECTION ---
+const CAR_MANUAL = `
+[OFFICIAL MANUAL - WARNING LIGHTS]
+1. SYMBOL: Rectangular box with dots (DPF). NAME: Diesel Particulate Filter. FIX: Drive at 40mph+ for 15 mins.
+2. SYMBOL: Red Oil Can. NAME: Low Oil Pressure. FIX: STOP IMMEDIATELY. Check oil.
+`;
+
+const INITIAL_USER_LOGS = [
+  { id: 1, date: "2025-11-25", note: "Replaced battery." },
+  { id: 2, date: "2025-11-26", note: "Checked oil level." },
+];
+// --------------------
 
 let agent: CactusAgent | null = null;
 
+interface ChatMessage {
+  id: string;
+  role: "user" | "ai";
+  text: string;
+}
+
 export default function HomeScreen() {
-  const [modelDownloaded, setModelDownloaded] = useState(false);
   const [modelLoaded, setModelLoaded] = useState(false);
-  const [latestCharAnalysed, setLatestCharAnalysed] = useState(0);
-  const [recommendedActions, setRecommendedActions] = useState<RecommendedAction[]>([]);
-  const [inferenceInProgress, setInferenceInProgress] = useState(false);
-  
-  const modelUrl = 'https://huggingface.co/Cactus-Compute/Qwen3-600m-Instruct-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf'
+  const [inputText, setInputText] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [userLogs, setUserLogs] = useState(INITIAL_USER_LOGS);
+  const [isThinking, setIsThinking] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
 
-  const downloadModel = async () => {return await downloadModelIfNotExists(modelUrl)}
+  // PATH TO BRAIN
+  const modelUrl = "file:///sdcard/Download/model.gguf";
 
-  const loadModel = async () => {
-    const modelPath = getFullModelPath(getModelNameFromUrl(modelUrl));
-    if ((await FileSystem.getInfoAsync(modelPath)).exists) {
-      const {error, agent: initializedAgent} = await CactusAgent.init({
-        model: modelPath,
+  useEffect(() => {
+    const initAgent = async () => {
+      console.log("Initializing...");
+      const { error, agent: initializedAgent } = await CactusAgent.init({
+        model: modelUrl,
         use_mlock: true,
-        n_ctx: 2048,
-        n_gpu_layers: Platform.OS === 'ios' ? 99 : 0
+        n_ctx: 4096,
+        n_gpu_layers: Platform.OS === "ios" ? 99 : 0,
       });
-      
+
       if (error || !initializedAgent) {
-        console.error('Failed to initialize CactusAgent:', error?.message);
+        console.error("Init Failed:", error?.message);
         return;
       }
-      
-      agent = initializedAgent;
-    }
-  }
 
-  useEffect(() => {
-    downloadModel().then((result) => {
-      setModelDownloaded(result);
-    })
+      agent = initializedAgent;
+      setModelLoaded(true);
+      setMessages([{ id: "0", role: "ai", text: "SYSTEM READY. SCANNING..." }]);
+    };
+    initAgent();
   }, []);
 
-  useEffect(() => {
-    if (modelDownloaded) {
-      loadModel().then(() => {
-        console.log('Model loaded');
-        
-        // Register tools with the CactusAgent after initialization
-        if (agent) {
-          agent.addTool(
-            async function setReminder(date: string, message: string) {
-              setRecommendedActions(prev => [...prev, {id: uuid.v4(), title: 'Set a reminder', description: message, icon: Calendar, accepted: false}]);
-              return {date: date, message: message, reminderSet: true};
-            },
-            "Suggests to set a reminder for a specific date. Use this if the user's input indicates that they would want to be reminded of something at a specific date and time. If in doubt, call!",
-            {
-              date: {
-                type: "string",
-                description: "The date and time to set the reminder for"
-              },
-              message: {
-                type: "string",
-                description: "The message to set the reminder for"
-              }
-            }
-          );
+  const handleSend = async () => {
+    if (!inputText.trim() || !agent || isThinking) return;
 
-          agent.addTool(
-            async function writeDraftEmail(subject: string) {
-              setRecommendedActions(prev => [...prev, {id: uuid.v4(), title: 'Write a draft email', description: subject, icon: Mail, accepted: false}]);
-              return {subject: subject, emailWritten: true};
-            },
-            "Suggests to write a draft email. Use this if you think you'll save the user time by writing a draft email. If in doubt, call!",
-            {
-              subject: {
-                type: "string",
-                description: "The subject of the email",
-                required: true
-              }
-            }
-          );
+    // 1. Show User Message
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      text: inputText,
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setInputText("");
+    setIsThinking(true);
 
-          agent.addTool(
-            async function addToDo(description: string) {
-              setRecommendedActions(prev => [...prev, {id: uuid.v4(), title: 'Add a to-do', description: description, icon: ListTodo, accepted: false}]);
-              return {description: description, toDoAdded: true};
-            },
-            "Suggests to add a to-do. Use this if you think you'll save the user time by adding a to-do. If in doubt, call!",
-            {
-              description: {
-                type: "string",
-                description: "The description of the to-do",
-                required: true
-              }
-            }
-          );
-        }
-        
-        setModelLoaded(true);
-      })
-    }
-  }, [modelDownloaded])
+    // 2. Build Context
+    // FIX: Removed '.event', used '.note' only
+    const historyText = userLogs
+      .map((log) => `- [${log.date}] ${log.note}`)
+      .join("\n");
 
-  const invokeLLM = async (entry: string) => {
-    if (!agent) return;
-    setInferenceInProgress(true);
-    console.log('Invoking completion...');
-    const startTime = Date.now();
-    
-    const result = await agent.completionWithTools(
-      [
-        {role: 'user', content: entry},
-      ],
-      {
-        temperature: 0.7,
-        n_predict: 256,
-        jinja: true,
-        tool_choice: 'auto',
-        stop: ['<|im_end|>'],
-      }
-    );
+    const prompt = `
+      You are a Mechanic.
+      MANUAL: ${CAR_MANUAL}
+      HISTORY: ${historyText}
+      USER: ${inputText}
+    `;
 
-    console.log('Completion result:', result);
-    console.log(`Inference finished in ${Date.now() - startTime}ms`);
-    setInferenceInProgress(false);
-  }
+    try {
+      // FIX: Cactus expects an array directly, or an object depending on version.
+      // This is the safest generic call:
+      const result = await agent.completion([
+        { role: "user", content: prompt },
+      ]);
 
-  const handleInputChange = async (text: string) => {
-    if (text.trim() === '') return;
-    if (!modelLoaded) return;
-    if (!agent) return; // Changed from !lm to !agent
-    if (inferenceInProgress) return;
-
-    const lastChar = text.charAt(text.length - 1);
-    if (lastChar === '\n' || lastChar === '.') {
-      const textToAnalyse = text.substring(latestCharAnalysed);
-      const _ = await invokeLLM(`/no_think ${textToAnalyse}\n`); // capture result if you like
-      setLatestCharAnalysed(text.length);
+      const aiMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "ai",
+        text: result.content,
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsThinking(false);
     }
   };
 
-  return (
-    <ThemedView style={styles.container}>
-      <TextInput
-        style={[styles.input, { borderWidth: 0 }]}
-        placeholder="Write your thoughts..."
-        onChangeText={handleInputChange}
-        multiline
-        numberOfLines={15}
-      />
-      <Text style={{ fontWeight: 'bold', marginBottom: 10 }}>Recommended actions</Text>
-      {recommendedActions.length === 0 && <Text style={{ marginBottom: 10 }}>Start typing to get recommendations...</Text>}
+  const handleLog = () => {
+    if (!inputText.trim()) return;
+    const newLog = {
+      id: Date.now(),
+      date: new Date().toISOString().split("T")[0],
+      note: inputText,
+    };
+    setUserLogs([...userLogs, newLog]);
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now().toString(), role: "ai", text: `LOGGED: "${inputText}"` },
+    ]);
+    setInputText("");
+  };
 
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>NOTHING // DIAGNOSTIC</Text>
+        <View
+          style={[
+            styles.statusDot,
+            modelLoaded ? styles.dotGreen : styles.dotRed,
+          ]}
+        />
+      </View>
       <FlatList
-        data={recommendedActions}
-        renderItem={({ item }) => (
-          <Animated.View entering={FadeInLeft.duration(500)} layout={LinearTransition.springify().damping(10).stiffness(100).mass(0.4)} style={{ width: '100%', marginBottom: 10, padding: 10, flexDirection: 'row', justifyContent: 'flex-start', backgroundColor: '#EEEEEE', borderRadius: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <item.icon size={24} color="black" style={{ marginRight: 10 }}/>
-            </View>
-            <View style={{ flexDirection: 'column', justifyContent: 'space-between' }}>
-              <Text style={{ fontWeight: 'bold', marginBottom: 0 }}>{item.title}</Text>
-              <Text>{item.description.length > 30 ? `${item.description.substring(0, 30)}...` : item.description}</Text>
-            </View>
-            <View style={{ flex: 1 }} />
-            {item.accepted ? (
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginRight: 8 }}>
-                <Check size={16} color="black" />
-              </View>
-            ) : ( 
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' }}>
-                <TouchableOpacity style={{ marginRight: 10, padding: 8, backgroundColor: '#FF6B6B', borderRadius: 5 }} onPress={() => setRecommendedActions(recommendedActions.filter(action => action.id !== item.id))}>
-                  <X size={16} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity style={{ padding: 8, backgroundColor: '#4CAF50', borderRadius: 5 }} onPress={() => setRecommendedActions(recommendedActions.map((action, idx) => action.id === item.id ? {...action, id: uuid.v4(), accepted: true} : action))}>
-                  <Check size={16} color="white"/>
-                </TouchableOpacity>
-              </View>
-            )}
-          </Animated.View>
-        )}
+        ref={flatListRef}
+        data={messages}
         keyExtractor={(item) => item.id}
-        numColumns={1}
+        style={styles.chatList}
+        renderItem={({ item }) => (
+          <View
+            style={[
+              styles.bubble,
+              item.role === "user" ? styles.userBubble : styles.aiBubble,
+            ]}
+          >
+            <Text
+              style={[
+                styles.text,
+                item.role === "user" ? styles.userText : styles.aiText,
+              ]}
+            >
+              {item.text}
+            </Text>
+          </View>
+        )}
       />
-    </ThemedView>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <TextInput
+          style={styles.input}
+          placeholder="ENTER FAULT..."
+          placeholderTextColor="#666"
+          value={inputText}
+          onChangeText={setInputText}
+        />
+        <View style={styles.buttonRow}>
+          <TouchableOpacity style={styles.logButton} onPress={handleLog}>
+            <Text style={styles.buttonText}>LOG</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
+            <Text style={styles.buttonText}>ANALYZE</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#000000" },
+  header: {
+    padding: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    borderBottomWidth: 1,
+    borderColor: "#333",
+  },
+  headerText: { color: "#FFF", fontFamily: "monospace", fontSize: 18 },
+  statusDot: { width: 10, height: 10, borderRadius: 5 },
+  dotRed: { backgroundColor: "#D71921" },
+  dotGreen: { backgroundColor: "#00FF00" },
+  chatList: { flex: 1, padding: 15 },
+  bubble: { padding: 15, marginBottom: 10, maxWidth: "85%" },
+  aiBubble: {
+    alignSelf: "flex-start",
+    borderLeftWidth: 2,
+    borderLeftColor: "#D71921",
+  },
+  userBubble: { alignSelf: "flex-end", backgroundColor: "#222" },
+  text: { color: "#FFF", fontFamily: "monospace" },
+  userText: { color: "#FFF" },
+  aiText: { color: "#FFF" },
+  input: {
+    backgroundColor: "#111",
+    color: "#FFF",
+    padding: 15,
+    fontFamily: "monospace",
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  buttonRow: { flexDirection: "row", padding: 15, gap: 10 },
+  logButton: {
+    flex: 1,
+    backgroundColor: "#333",
+    padding: 15,
+    alignItems: "center",
+  },
+  sendButton: {
+    flex: 2,
+    backgroundColor: "#D71921",
+    padding: 15,
+    alignItems: "center",
+  },
+  buttonText: { color: "#FFF", fontFamily: "monospace", fontWeight: "bold" },
+});
