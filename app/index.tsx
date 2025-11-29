@@ -17,18 +17,7 @@ import {
   useCameraDevice,
   useCameraPermission,
 } from "react-native-vision-camera";
-
-// --- DATA SECTION ---
-const CAR_MANUAL = `
-[OFFICIAL MANUAL - WARNING LIGHTS]
-1. SYMBOL: Rectangular box with dots (DPF). NAME: Diesel Particulate Filter. FIX: Drive at 40mph+ for 15 mins.
-2. SYMBOL: Red Oil Can. NAME: Low Oil Pressure. FIX: STOP IMMEDIATELY. Check oil.
-`;
-
-const INITIAL_USER_LOGS = [
-  { id: 1, date: "2025-11-25", note: "Replaced battery." },
-];
-// --------------------
+import { CAR_MANUAL, INITIAL_USER_LOGS } from "./knowledge_base";
 
 let agent: CactusAgent | null = null;
 
