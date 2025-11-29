@@ -1,49 +1,51 @@
-# Cactus Agent Example App
+# The Digital Glovebox (Nothing Phone Edition)
 
-A React Native demo app showcasing the CactusAgent class for AI-powered productivity features.
+> An offline-first, multimodal RAG agent for vehicle diagnostics.
 
-## Quickstart
+---
 
-Click GIF below to watch a short video quickstart:
+## 🏎️ Overview
 
-[![Cactus Agents for React Native 🌵](https://github.com/user-attachments/assets/4d809fc1-6e95-484b-ad79-afad88d5ffe4)](https://www.tella.tv/video/cactus-agents-for-react-native-021x)
+**The Digital Glovebox** is a specialized AI assistant designed for the edge. Built with a "Nothing OS" aesthetic, it provides instant, offline vehicle diagnostics by combining computer vision with a local Large Language Model (LLM).
 
-## Overview
+## 🛠️ Key Technical Features
 
-This app demonstrates how to integrate local AI agents into a React Native application using the Cactus framework. The app features a text input where AI inference is automatically triggered each time you type a period (`.`), allowing for real-time AI assistance and suggestions.
+### 🧠 Local Inference
+- Powered by **Qwen 2.5 3B** (GGUF format).
+- Runs entirely on-device with no internet connection required.
+- Ensures data privacy and zero-latency responses.
 
-## How It Works
+### 👁️ Computer Vision
+- Utilizes **React Native Vision Camera** for real-time visual input.
+- Capable of identifying dashboard warning lights and engine components instantly.
 
-1. Type text into the app's text input field
-2. Each time you enter a period (`.`), the CactusAgent triggers inference
-3. The AI processes your input and provides relevant suggestions or responses
-4. Continue typing to see real-time AI assistance
+### 🥪 'Context Sandwich' Architecture
+- Implements a unique RAG (Retrieval-Augmented Generation) pattern:
+  1.  **Bottom Layer**: Static Technical Manuals (Pre-indexed).
+  2.  **Filling**: Dynamic User Service History & Real-time Visual Context.
+  3.  **Top Layer**: System Instructions & Safety Guardrails.
+- This ensures the model has access to both the "Textbook Answer" and the "Personal Context" simultaneously.
 
-## Agent Tools
+### ⚡ Zero-Latency Offline Architecture
+- No API calls. No cloud latency.
+- "Pre-indexed static assets" replace traditional vector DB lookups for this demo to guarantee instant retrieval on the edge.
 
-The CactusAgent has access to three productivity tools:
+---
 
-- **Set Reminder**: Creates reminders for specific dates and times based on your input
-- **Write Draft Email**: Generates draft emails with suggested subjects when appropriate
-- **Add To-Do**: Creates to-do items from tasks mentioned in your text
+## 👨‍⚖️ Instructions for Judges
 
-Each tool suggestion appears as a recommended action that you can accept or dismiss.
+> [!IMPORTANT]
+> **Manual Model Setup Required**
 
-## Setup
+To run this application on an Android device/emulator, you must manually push the model file to the device's storage.
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+1.  **Download the Model**: Ensure you have the `model.gguf` file (Qwen 2.5 3B).
+2.  **Push to Device**:
+    ```bash
+    adb push path/to/your/model.gguf /sdcard/Download/model.gguf
+    ```
+3.  **Launch App**: Open the app and complete the "Initial Setup" form.
 
-2. Start the development server:
-   ```bash
-   npx expo run
-   ```
+---
 
-3. Run on your preferred platform:
-   - iOS Simulator
-   - Android Emulator  
-   - Physical device with Expo Go
-
-This is an Expo project with file-based routing.
+*Built for the Hackathon 2025.*
