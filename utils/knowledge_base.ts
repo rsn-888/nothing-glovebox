@@ -25,10 +25,10 @@ export const CAR_MANUAL = `
 `;
 
 export const INITIAL_USER_LOGS = [
-  { id: 1, date: "2025-11-20", note: "Full Service completed at Halfords." },
-  {
-    id: 2,
-    date: "2025-11-25",
-    note: "Replaced battery with new Bosch S4 unit.",
-  },
+   { id: 1, date: "2025-11-20", note: "Full Service completed at Halfords." },
+   {
+      id: 2,
+      date: "2025-11-25",
+      note: "Replaced battery with new Bosch S4 unit.",
+   },
 ];

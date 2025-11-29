@@ -27,54 +27,9 @@ import {
 // ==========================================
 // DATA SECTION
 // ==========================================
+import { CAR_MANUAL, INITIAL_USER_LOGS } from "../utils/knowledge_base";
 
-/**
- * @const CAR_MANUAL
- * @description
- * In a production environment, this technical documentation would be fetched from a local Vector Database.
- *
- * For this offline demo, it is provided as 'Pre-indexed static assets for zero-latency edge retrieval'
- * to ensure instant availability and demonstrate the offline-first RAG architecture.
- */
-const CAR_MANUAL = `
-[OFFICIAL FORD FIESTA (MK7) WORKSHOP MANUAL - SECTION 4: INSTRUMENT CLUSTER]
 
-1. SYMBOL: Rectangular box with dots (DPF Warning).
-   SYSTEM: Emission Control.
-   SEVERITY: MEDIUM (Amber).
-   DESCRIPTION: The Diesel Particulate Filter is saturated with soot.
-   OFFICIAL FIX: Regeneration required. Do NOT switch off the engine. Drive at a sustained speed of 40mph+ (approx 2500 RPM) for 20 minutes to burn off the soot.
-   WARNING: Frequent short journeys will cause this fault to recur.
-
-2. SYMBOL: Red Oil Can / Dripping Can.
-   SYSTEM: Lubrication.
-   SEVERITY: CRITICAL (Red).
-   DESCRIPTION: Low oil pressure. Engine lubrication has failed.
-   OFFICIAL FIX: STOP THE VEHICLE IMMEDIATELY in a safe place. Turn off engine. Check oil dipstick. If low, top up with 5W-30 Synthetic. If level is correct, oil pump failure is likely. Do not drive.
-
-3. SYMBOL: Red Battery Box.
-   SYSTEM: Charging System.
-   SEVERITY: HIGH (Red).
-   DESCRIPTION: Alternator is not charging the battery.
-   OFFICIAL FIX: Turn off all non-essential electrical loads (Radio, A/C, Heated Seats). Drive immediately to the nearest service station. Engine will stop when battery depletes.
-`;
-
-/**
- * @const INITIAL_USER_LOGS
- * @description
- * In a production environment, these user records would be fetched from a local Vector Database.
- *
- * For this offline demo, they are provided as 'Pre-indexed static assets for zero-latency edge retrieval'
- * to simulate the retrieval of personalized context without network latency.
- */
-const INITIAL_USER_LOGS = [
-  { id: 1, date: "2025-11-20", note: "Full Service completed at Halfords." },
-  {
-    id: 2,
-    date: "2025-11-25",
-    note: "Replaced battery with new Bosch S4 unit.",
-  },
-];
 
 let agent: CactusAgent | null = null;
 
@@ -239,10 +194,21 @@ export default function HomeScreen() {
         "Red Battery Box (Alternator)",
       ];
       const currentHint = scenarios[scenarioIndex];
+      const historyText = userLogs
+        .map((log) => `- [${log.date}] ${log.note}`)
+        .join("\n");
+
       const prompt = `
-        You are a Mechanic. MANUAL: ${CAR_MANUAL}
+        You are a Mechanic. 
+        [DATA SOURCE 1: USER SERVICE LOGS]
+        ${historyText}
+        [DATA SOURCE 2: OFFICIAL MANUAL]
+        ${CAR_MANUAL}
+        
         SYSTEM HINT: The user is looking at a ${currentHint}.
-        INSTRUCTION: Identify the light. Tell the user the name and the fix.
+        
+        INSTRUCTION: Identify the light. Tell the user the name and the fix. 
+        CRITICAL: Check the USER SERVICE LOGS. If the user's past actions (e.g. short journeys, recent repairs) explain the fault, YOU MUST MENTION IT. Connect the dots for the user.
       `;
 
       const result = await agent?.completion([
@@ -283,8 +249,6 @@ export default function HomeScreen() {
           <Text style={styles.label}>VEHICLE MAKE</Text>
           <TextInput
             style={styles.setupInput}
-            placeholder="FORD"
-            placeholderTextColor="#D71921"
             onChangeText={setCarMake}
             value={carMake}
           />
@@ -294,8 +258,6 @@ export default function HomeScreen() {
           <Text style={styles.label}>VEHICLE MODEL</Text>
           <TextInput
             style={styles.setupInput}
-            placeholder="FIESTA"
-            placeholderTextColor="#D71921"
             onChangeText={setCarModel}
             value={carModel}
           />
@@ -305,8 +267,6 @@ export default function HomeScreen() {
           <Text style={styles.label}>YEAR</Text>
           <TextInput
             style={styles.setupInput}
-            placeholder="2015"
-            placeholderTextColor="#D71921"
             keyboardType="numeric"
           />
         </View>
